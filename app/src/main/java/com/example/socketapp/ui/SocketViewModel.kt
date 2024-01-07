@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.example.socketapp.data.Message
+import com.example.socketapp.data.socket.SocketEvents
 import com.example.socketapp.data.socket.SocketMessageReq
 import com.example.socketapp.data.socket.SocketMessageRes
 import com.example.socketapp.utils.Resource
@@ -38,14 +39,14 @@ class SocketViewModel (
     private lateinit var mSocket: Socket
 
     // TODO esto esta hardcodeeado
-    private val ROOM = "default-room"
+    private val SOCKET_ROOM = "default-room"
 
     fun startSocket() {
         val socketOptions = createSocketOptions();
         mSocket = IO.socket(SOCKET_HOST, socketOptions);
 
-        mSocket.on("connect", onConnect())
-        mSocket.on("chat message", onNewMessage())
+        mSocket.on(SocketEvents.ON_CONNECT.value, onConnect())
+        mSocket.on(SocketEvents.ON_MESSAGE_RECEIVED.value, onNewMessage())
 
         viewModelScope.launch {
             connect()
@@ -121,7 +122,7 @@ class SocketViewModel (
 
     private fun updateMessageListWithNewMessage(message: SocketMessageRes) {
         try {
-            val incomingMessage = Message(ROOM, message.message, message.authorName)
+            val incomingMessage = Message(SOCKET_ROOM, message.message, message.authorName)
             val msgsList = _messages.value?.data?.toMutableList()
             if (msgsList != null) {
                 msgsList.add(incomingMessage)
@@ -137,9 +138,9 @@ class SocketViewModel (
     fun onSendMessage(message: String) {
         Log.d(TAG, "onSendMessage $message")
         // la sala esta hardcodeada..
-        val socketMessage = SocketMessageReq(ROOM, message)
+        val socketMessage = SocketMessageReq(SOCKET_ROOM, message)
         val jsonObject = JSONObject(Gson().toJson(socketMessage))
-        mSocket.emit("chat message", jsonObject)
+        mSocket.emit(SocketEvents.ON_SEND_MESSAGE.value, jsonObject)
     }
 }
 
