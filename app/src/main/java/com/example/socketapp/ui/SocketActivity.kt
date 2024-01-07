@@ -37,15 +37,15 @@ class SocketActivity : ComponentActivity() {
         viewModel.connected.observe(this, Observer {
             when (it.status) {
                 Resource.Status.SUCCESS -> {
-                    binding.btnSendMessage.isEnabled = true
+                    binding.btnSendMessage.isEnabled = it.data!!
                 }
                 Resource.Status.ERROR -> {
                     // TODO sin gestionarlo en el VM. Y si envia en una sala que ya no esta? a tratar
                     Log.d(TAG, "error al conectar...")
-                    binding.btnSendMessage.isEnabled = false
+                    binding.btnSendMessage.isEnabled = it.data!!
                 }
                 Resource.Status.LOADING -> {
-                    binding.btnSendMessage.isEnabled = false
+                    binding.btnSendMessage.isEnabled = it.data!!
                 }
             }
         })

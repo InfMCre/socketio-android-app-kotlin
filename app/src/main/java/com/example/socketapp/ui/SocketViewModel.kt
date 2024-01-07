@@ -46,6 +46,8 @@ class SocketViewModel (
         mSocket = IO.socket(SOCKET_HOST, socketOptions);
 
         mSocket.on(SocketEvents.ON_CONNECT.value, onConnect())
+        mSocket.on(SocketEvents.ON_DISCONNECT.value, onDisconnect())
+
         mSocket.on(SocketEvents.ON_MESSAGE_RECEIVED.value, onNewMessage())
 
         viewModelScope.launch {
@@ -80,6 +82,13 @@ class SocketViewModel (
             // IllegalStateException: Cannot invoke setValue on a background thread
             // en funcion asincrona obligado post
             _connected.postValue(Resource.success(true))
+        }
+    }
+    private fun onDisconnect(): Emitter.Listener {
+        return Emitter.Listener {
+            // Manejar el mensaje recibido
+            Log.d(TAG, "desconectado")
+            _connected.postValue(Resource.success(false))
         }
     }
 
