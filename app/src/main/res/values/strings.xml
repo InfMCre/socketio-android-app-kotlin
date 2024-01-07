@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">SocketApp</string>
+    <string name="btn_send_message">Enviar</string>
+    <string name="input_message">Mensaje</string>
+    <string name="btn_connect">Conectarse</string>
+</resources>
