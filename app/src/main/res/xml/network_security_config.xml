@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- previamente -->
+    <!--
     <domain-config cleartextTrafficPermitted="true">
-        <!-- mi localhost -->
         <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
+    -->
+    <domain-config cleartextTrafficPermitted="false"> <!-- asi no permite peticiones HTTP, unicamente https-->
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <trust-anchors>
+            <!-- https://developer.android.com/training/articles/security-config?hl=es-419#TrustingAdditionalCas -->
+            <certificates src="@raw/certificate"/>
+        </trust-anchors>
     </domain-config>
 </network-security-config>

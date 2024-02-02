@@ -1,6 +1,8 @@
 package com.example.socketapp.ui
 
+import android.app.Application
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -11,7 +13,10 @@ import com.example.socketapp.data.Message
 import com.example.socketapp.data.socket.SocketEvents
 import com.example.socketapp.data.socket.SocketMessageReq
 import com.example.socketapp.data.socket.SocketMessageRes
+import com.example.socketapp.utils.ssl.MyHostnameVerifier
 import com.example.socketapp.utils.Resource
+import com.example.socketapp.utils.ssl.MyTrustManager
+// import com.example.socketapp.utils.hostnameVerifier
 import com.google.gson.Gson
 import io.socket.client.IO
 import io.socket.client.Socket
@@ -19,11 +24,17 @@ import io.socket.emitter.Emitter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+
 
 class SocketViewModel (
-    // repo?
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
+    // not viewModel extension
 
     private val TAG = "SocketViewModel"
 
@@ -33,7 +44,7 @@ class SocketViewModel (
     private val _connected = MutableLiveData<Resource<Boolean>>()
     val connected : LiveData<Resource<Boolean>> get() = _connected
 
-    private val SOCKET_HOST = "http://10.0.2.2:8085/"
+    private val SOCKET_HOST = "https://10.0.2.2:8085/"
     private val AUTHORIZATION_HEADER = "Authorization"
 
     private lateinit var mSocket: Socket
@@ -41,11 +52,19 @@ class SocketViewModel (
     // TODO esto esta hardcodeeado
     private val SOCKET_ROOM = "default-room"
 
+    // to get the app
+    fun getApp(): Application {
+        return getApplication()
+    }
     fun startSocket() {
+        Log.i(TAG, "startSocket")
         val socketOptions = createSocketOptions();
         mSocket = IO.socket(SOCKET_HOST, socketOptions);
 
         mSocket.on(SocketEvents.ON_CONNECT.value, onConnect())
+        mSocket.on(SocketEvents.ON_CONNECT.value, onConnect())
+        mSocket.on(SocketEvents.ON_CONNECT_ERROR.value, onConnectError())
+        mSocket.on(SocketEvents.ON_CONNECT_TIMEOUT.value, onConnectTimeout())
         mSocket.on(SocketEvents.ON_DISCONNECT.value, onDisconnect())
 
         mSocket.on(SocketEvents.ON_MESSAGE_RECEIVED.value, onNewMessage())
@@ -70,8 +89,29 @@ class SocketViewModel (
         headers[AUTHORIZATION_HEADER] = mutableListOf("Bearer AppJwt:1:Mikel")
 
         options.extraHeaders = headers
+
+        // for SSL
+        options.secure = true
+        // configuration to accept self-signed certificates
+        // In production it shouldn't be a self-signed certificate
+        val certificatesManager = MyTrustManager(getApp())
+        val sslContext = SSLContext.getInstance("TLS")
+        sslContext.init(null, arrayOf<TrustManager>(certificatesManager.trustManager), null)
+
+        val okHttpClient = OkHttpClient.Builder()
+            .hostnameVerifier(MyHostnameVerifier())
+            .sslSocketFactory(sslContext.socketFactory, certificatesManager.trustManager)
+            .readTimeout(1, TimeUnit.MINUTES)
+            .build()
+        options.callFactory = okHttpClient
+        options.webSocketFactory = okHttpClient
+
+        // end SSL config
+
         return options
     }
+
+
 
     private fun onConnect(): Emitter.Listener {
         return Emitter.Listener {
@@ -82,6 +122,17 @@ class SocketViewModel (
             // IllegalStateException: Cannot invoke setValue on a background thread
             // en funcion asincrona obligado post
             _connected.postValue(Resource.success(true))
+        }
+    }
+    private fun onConnectError(): Emitter.Listener {
+        return Emitter.Listener {
+            Log.e(TAG, "onConnectError")
+            Log.e(TAG, it[0].toString())
+        }
+    }
+    private fun onConnectTimeout(): Emitter.Listener {
+        return Emitter.Listener {
+            Log.e(TAG, "onConnectTimeout")
         }
     }
     private fun onDisconnect(): Emitter.Listener {
@@ -155,9 +206,9 @@ class SocketViewModel (
 
 
 class SocketViewModelFactory(
-    // repo?
+    val application: Application
 ): ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
-        return SocketViewModel() as T
+        return SocketViewModel(application) as T
     }
 }

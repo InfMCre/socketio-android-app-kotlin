@@ -15,7 +15,7 @@ class SocketActivity : ComponentActivity() {
 
     private val TAG = "SocketActivity"
     private lateinit var messageAdapter: MessageAdapter
-    private val viewModel: SocketViewModel by viewModels { SocketViewModelFactory() }
+    private val viewModel: SocketViewModel by viewModels { SocketViewModelFactory(application) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
